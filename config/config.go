@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"path"
-	"runtime"
 	"sync"
 
 	"github.com/go-ini/ini"
@@ -15,11 +13,7 @@ var configMutex sync.RWMutex
 var envConfig *ini.File
 
 func init() {
-	var prefix string
-	_, filename, _, ok := runtime.Caller(0)
-	if ok {
-		prefix = path.Dir(filename) + "/"
-	}
+	prefix := "./"
 
 	err := Set(prefix, nil)
 
