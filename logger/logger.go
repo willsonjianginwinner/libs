@@ -55,7 +55,7 @@ func init() {
 		zapcore.NewCore(encoder, zapcore.AddSync(warnWriter), warnLevel),
 		zapcore.NewCore(encoder, zapcore.AddSync(errorWriter), errorLevel),
 	)
-	log := zap.New(core, zap.AddCaller()) // 需要传入 zap.AddCaller() 才会显示打日志点的文件名和行数, 有点小坑
+	log := zap.New(core, zap.AddCaller(), zap.AddCallerSkip(1)) // 需要传入 zap.AddCaller() 才会显示打日志点的文件名和行数, 有点小坑
 	errorLogger = log.Sugar()
 }
 func getWriter(filename string) io.Writer {
