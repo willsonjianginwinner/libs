@@ -46,7 +46,7 @@ func loadConfig(prefix string, files []any) (*ini.File, error) {
 		}
 	}
 
-	iniFile, err := ini.Load(prefix+"config/env.ini", files...)
+	iniFile, err := ini.Load(prefix+"env.ini", files...)
 
 	return iniFile, err
 }
