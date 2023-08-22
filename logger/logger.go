@@ -10,6 +10,11 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+type Field struct {
+	Name string
+	Data interface{}
+}
+
 var errorLogger *zap.SugaredLogger
 
 func init() {
