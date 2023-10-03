@@ -15,7 +15,8 @@ type TelegramBot struct {
 
 type TelegramSetting struct {
 	Token       string            //bot token
-	ChatID      int64             //限制chat id
+	ChatID      []int64           //限制chat id
+	OwnerID     []int64           //最大權限
 	IsPrivate   bool              //command是否私有使用
 	IsEnable    bool              //是否開啟
 	AllowNotify bool              //是否允許通知
@@ -26,6 +27,7 @@ type TelegramCommand struct {
 	Command     string
 	Description string
 	Func        func(string) string
+	JustOwnerDo bool
 }
 
 func New(settings TelegramSetting) (*TelegramBot, error) {
@@ -68,7 +70,21 @@ func (chat_bot *TelegramBot) Listen() error {
 			continue
 		}
 		if update.Message.IsCommand() {
-			if chat_bot.setting.IsPrivate && update.Message.Chat.ID != chat_bot.setting.ChatID {
+			canRun := true
+			if chat_bot.setting.IsPrivate {
+				canRun = false
+				for _, v := range chat_bot.setting.ChatID {
+					if v == update.Message.Chat.ID {
+						canRun = true
+					}
+				}
+				for _, v := range chat_bot.setting.OwnerID {
+					if v == update.Message.From.ID {
+						canRun = true
+					}
+				}
+			}
+			if !canRun {
 				continue
 			}
 			comm := update.Message.Command()
@@ -79,7 +95,19 @@ func (chat_bot *TelegramBot) Listen() error {
 				msg = CommandHelp(chat_bot.commandMap)
 			default:
 				if commFunc, ok := chat_bot.commandMap[comm]; ok {
-					msg = commFunc.Func(text)
+					canDo := true
+					if commFunc.JustOwnerDo {
+						canDo = false
+						for _, v := range chat_bot.setting.OwnerID {
+							if v == update.Message.From.ID {
+								canDo = true
+								break
+							}
+						}
+					}
+					if canDo {
+						msg = commFunc.Func(text)
+					}
 				}
 			}
 			if msg != "" {
@@ -102,7 +130,7 @@ func (chat_bot *TelegramBot) SetNotify(allow bool) {
 	chat_bot.setting.AllowNotify = allow
 }
 
-func (chat_bot *TelegramBot) SetChatID(chatID int64) {
+func (chat_bot *TelegramBot) SetChatID(chatID []int64) {
 	chat_bot.setting.ChatID = chatID
 }
 
@@ -117,13 +145,15 @@ func (chat_bot *TelegramBot) Notify(msg string) error {
 	if !chat_bot.setting.AllowNotify {
 		return errors.New("telegram is not allow notify")
 	}
-	if chat_bot.setting.ChatID == 0 {
+	if len(chat_bot.setting.ChatID) == 0 {
 		return errors.New("telegram chatID is nil")
 	}
 
-	err := chat_bot.SendMessage(chat_bot.setting.ChatID, msg)
-	if err != nil {
-		return err
+	for _, v := range chat_bot.setting.ChatID {
+		err := chat_bot.SendMessage(v, msg)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
