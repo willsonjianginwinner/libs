@@ -84,29 +84,47 @@ func (chat_bot *TelegramBot) Listen() error {
 					}
 				}
 			}
-			if !canRun {
-				continue
-			}
-			comm := update.Message.Command()
-			text := update.Message.Text
 			msg := ""
-			switch comm {
-			case "help":
-				msg = CommandHelp(chat_bot.commandMap)
-			default:
-				if commFunc, ok := chat_bot.commandMap[comm]; ok {
-					canDo := true
-					if commFunc.JustOwnerDo {
-						canDo = false
-						for _, v := range chat_bot.setting.OwnerID {
-							if v == update.Message.From.ID {
-								canDo = true
-								break
+			if !canRun {
+				msg = "您沒有權限，請聯絡工程師"
+				for _, v := range chat_bot.setting.OwnerID {
+					msgforowner := fmt.Sprintf(
+						"有人想使用機器人,請判斷是否給予權限, Name: %s%s(%s), ChatID: %d, ID: %d",
+						update.Message.From.FirstName,
+						update.Message.From.LastName,
+						update.Message.From.UserName,
+						update.Message.Chat.ID,
+						update.Message.From.ID,
+					)
+					err := chat_bot.SendMessage(v, msgforowner)
+					if err != nil {
+						errmsg := fmt.Sprintf("telegram send message faild: chatID: %d, msg: %s, error: %v", v, msgforowner, err)
+						fmt.Println(errmsg)
+					}
+				}
+			} else {
+				comm := update.Message.Command()
+				text := update.Message.Text
+				switch comm {
+				case "help":
+					msg = CommandHelp(chat_bot.commandMap)
+				default:
+					if commFunc, ok := chat_bot.commandMap[comm]; ok {
+						canDo := true
+						if commFunc.JustOwnerDo {
+							canDo = false
+							for _, v := range chat_bot.setting.OwnerID {
+								if v == update.Message.From.ID {
+									canDo = true
+									break
+								}
 							}
 						}
-					}
-					if canDo {
-						msg = commFunc.Func(text)
+						if canDo {
+							msg = commFunc.Func(text)
+						} else {
+							msg = "您沒有權限，請聯絡工程師"
+						}
 					}
 				}
 			}
